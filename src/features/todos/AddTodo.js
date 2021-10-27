@@ -32,10 +32,16 @@ const AddTodo = ({ addTodo }) => {
   useWhileMounted(() =>
     bus.listenQueueing(
       requestSaveTodo.match,
-      ({ payload }) =>
-        saveTodo(payload).then(() => {
-          addTodo(payload)
-        }),
+      // Optimistic UI option
+      // ({ payload }) => {
+      //   addTodo(payload)
+      //   return saveTodo(payload)
+      // },
+      // Await service response option
+      // async ({ payload }) => {
+      //   await saveTodo(payload)
+      //   addTodo(payload)
+      // },
       {
         subscribe() {
           setIsLoading(true)
