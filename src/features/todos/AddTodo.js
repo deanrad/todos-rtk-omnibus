@@ -1,18 +1,51 @@
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { connect } from 'react-redux'
 import { addTodo } from './todosSlice'
-import { saveTodoService } from 'services/saveTodo'
-
+import { saveTodoService, requestSaveTodo } from 'services/saveTodo'
+import { bus } from 'services/bus'
 const mapDispatch = { addTodo }
 
 const { useSaveTodoMutation } = saveTodoService
 
+// Any function returning an RxJS subscription
+export function useWhileMounted(subsFactory) {
+  useEffect(() => {
+    const sub = subsFactory()
+    return () => sub?.unsubscribe()
+  }, [])
+}
+
 const AddTodo = ({ addTodo }) => {
   const [todoText, setTodoText] = useState('')
-  const [saveTodo, { isLoading }] = useSaveTodoMutation()
+  const [isLoading, setIsLoading] = useState(false)
+  const [saveTodo] = useSaveTodoMutation()
 
   const onChange = e => setTodoText(e.target.value)
 
+  // While this component is mounted..
+  //   For any requestSaveTodo,
+  //     Initiate athe RTKQ saveTodo function, returning its Promise
+  //     Handle the start(subscribe) and end(complete) events with local state mutations
+  //
+  // This listener is in queueing mode - only 1 query will execute at a time,
+  //   and saves will occur at the server in the order they occurred at the client.
+  useWhileMounted(() =>
+    bus.listenQueueing(
+      requestSaveTodo.match,
+      ({ payload }) =>
+        saveTodo(payload).then(() => {
+          addTodo(payload)
+        }),
+      {
+        subscribe() {
+          setIsLoading(true)
+        },
+        complete() {
+          setIsLoading(false)
+        }
+      }
+    )
+  )
   return (
     <div>
       <form
@@ -21,16 +54,10 @@ const AddTodo = ({ addTodo }) => {
           if (!todoText.trim()) {
             return
           }
-          // Do the API call.
-          // Race conditions due to saves going concurrently
-          // - Saves can go concurrently, leading to indeterminate save order
-          // - RTKQ only tracks loading status for a single todo at a time,
-          //   so if #1 is still loading when #2 completes, the loading indicator
-          //   will be gone too soon
-          saveTodo(todoText).then(() => {
-            addTodo(todoText)
-            setTodoText('')
-          })
+          // D̶o̶ ̶t̶h̶e̶ ̶A̶P̶I̶ ̶c̶a̶l̶l̶.̶
+          // Put a request to save onto the event bus.
+          bus.trigger(requestSaveTodo(todoText))
+          setTodoText('')
         }}
       >
         <input value={todoText} onChange={onChange} />
