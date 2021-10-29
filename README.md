@@ -1,3 +1,4 @@
+# Omnibus Adaptation of the RTK TODO MVC app
 
 In this repo, we take the synchronous-local-state version of the [RTK Todos Example](), and we insert an API call 'in the middle' of the `addTodo` process. We start at commit b2a2df9 which creates the RTK Query `saveTodoMutation`, and adds a call to it to `AddTodo`. Basically we make this change.
 
@@ -27,4 +28,24 @@ The point is not that RTK Query does something wrong. The point is that often ti
 
 Here, RxJS operators have something to offer. And Omnibus lets bus listener handler callbacks return anything that can become an Observable, including a Promise. So without needing to comb the documents for RTK Query for how to serialize requests (if it even does that), you can solve the problem right off the bus. Here is how you do that...
 
-TODO finish explaining when less tired...
+(see code in repo)
+
+# Conclusion 
+
+The metaphor of a `bus+listeners+concurrency strategy` is a robust way to compose applications. Routine race conditions can be addressed with little change to surrounding code. The app can grow in a modular, additive fashion. If sounds or animations were to play on the completion of each todo, it would not involve any change to existing code! This has benefits for
+
+   - Dev-time Readability
+   - Run-time Performance and Correctness (race condition-free and appropriate cancelation)
+   - Team-level agility
+   - XD/UX precision in timing behavior
+
+# Reasons Not To ?
+It's often said that event bus apps are hard to debug because - 'you dont know where the event came from'. True, there is a layer of indirection. But we also don't code in assembly language anymore because layers of indirection can be supremely useful.
+
+Using a bus with spies, guards and filters means it's trivially simple to dump all events to the console (or filter them through Redux and use Redux DevTools instead). You can (and I do) open a debugger in the callstack of the event triggerer without knowing where the triggerer is. Sure, there is indirection, and you should not introduce it without considering the pros and cons for your team and project. But if you have timing or resource or race condition issues to solve right now, a bus will have ROI right away. Then the small 7Kb cost for that fix can get amortized across future fixes.
+
+Features like optimistic UI, choices like queueing or blocking, can become more like configuration than architecture - in other words, they can be implemented more cheaply, and changed more readily.
+
+
+
+
