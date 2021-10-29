@@ -46,6 +46,13 @@ Using a bus with spies, guards and filters means it's trivially simple to dump a
 
 Features like optimistic UI, choices like queueing or blocking, can become more like configuration than architecture - in other words, they can be implemented more cheaply, and changed more readily.
 
+# Comparisons/Prior Art
+
+RxJS operators `mergeMap`, `concatMap`, `switchMap`, and `exhaustMap` solve the problems Omnibus solves. In fact Omnibus is just a syntactic sugar around using them, behind mnemonic names such as `listen`, `listenQueueing`, `listenSwitching` and `listenBlocking`. Also Ember Concurrency called the 4 identical modes by its own names.
+
+To my knowledge, the first-class existence of these 4 concurrency modes is not implemented anywhere in JS outside of Angular/RxJS and EmberJS (via Ember Concurrency). Certainly nowhere in React, or even in the coming React Suspense is there as complete a set of answers to these commonly occuring timing strategies. So React developers particularly can use Omnibus as their on-ramp into these concepts because they will probably not think 'RxJS' or 'Ember' for solutions because those sound 'too big'.
+
+Omnibus takes the concepts, and gives you a minimal 7Kb library to give you all their power in a little teeny package!
 
 
 
