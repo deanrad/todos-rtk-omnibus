@@ -1,68 +1,30 @@
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
 
-## Available Scripts
+In this repo, we take the synchronous-local-state version of the [RTK Todos Example](), and we insert an API call 'in the middle' of the `addTodo` process. We start at commit b2a2df9 which creates the RTK Query `saveTodoMutation`, and adds a call to it to `AddTodo`. Basically we make this change.
 
-In the project directory, you can run:
+```diff
+- addTodo(todoText)
+- setTodoText('')
++ saveTodo(todoText).then(() => {
++   addTodo(todoText)
++   setTodoText('')
++ })
+```
 
-### `npm start`
+At this point, we have an `isLoading` field that controls a piece of UI that puts ellipses on the Add Todo button.
 
-Runs the app in the development mode.<br>
-Open [http://localhost:3000](http://localhost:3000) to view it in the browser.
+```ts
+const [saveTodo, { isLoading }] = useSaveTodoMutation()
+...
+<button type="submit">Add Todo{isLoading ? '...' : ''}</button>
+```
 
-The page will reload if you make edits.<br>
-You will also see any lint errors in the console.
+But we have race conditions lurking here.
 
-### `npm test`
+What occurs when the first call to the `saveTodo` mutation takes longer - say 5000 milliseconds, while the second call takes only 3000 milliseconds?
+The loading indicator goes away too soon. Furthermore, if the insertion order of todos is of interest, the server could now record an earlier `createdAt` date for the _second_ todo than for the first! You've indavertantly violated causality.
 
-Launches the test runner in the interactive watch mode.<br>
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+The point is not that RTK Query does something wrong. The point is that often times the correct timing strategy often exists **outside** of whatever library you are using. And it may not even be implemented in any library already in your app (unless you are using Angular). 
 
-### `npm run build`
+Here, RxJS operators have something to offer. And Omnibus lets bus listener handler callbacks return anything that can become an Observable, including a Promise. So without needing to comb the documents for RTK Query for how to serialize requests (if it even does that), you can solve the problem right off the bus. Here is how you do that...
 
-Builds the app for production to the `build` folder.<br>
-It correctly bundles React in production mode and optimizes the build for the best performance.
-
-The build is minified and the filenames include the hashes.<br>
-Your app is ready to be deployed!
-
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
-
-### `npm run eject`
-
-**Note: this is a one-way operation. Once you `eject`, you can’t go back!**
-
-If you aren’t satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
-
-Instead, it will copy all the configuration files and the transitive dependencies (Webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you’re on your own.
-
-You don’t have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn’t feel obligated to use this feature. However we understand that this tool wouldn’t be useful if you couldn’t customize it when you are ready for it.
-
-## Learn More
-
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
-
-To learn React, check out the [React documentation](https://reactjs.org/).
-
-### Code Splitting
-
-This section has moved here: https://facebook.github.io/create-react-app/docs/code-splitting
-
-### Analyzing the Bundle Size
-
-This section has moved here: https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size
-
-### Making a Progressive Web App
-
-This section has moved here: https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app
-
-### Advanced Configuration
-
-This section has moved here: https://facebook.github.io/create-react-app/docs/advanced-configuration
-
-### Deployment
-
-This section has moved here: https://facebook.github.io/create-react-app/docs/deployment
-
-### `npm run build` fails to minify
-
-This section has moved here: https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify
+TODO finish explaining when less tired...
